@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "GCP Date Picker",
+  "version": "1.0",
+  "description": "Visual date picker for Google Cloud APIs Dashboard",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://console.cloud.google.com/*"],
+  "content_scripts": [{
+    "matches": ["https://console.cloud.google.com/apis/dashboard*"],
+    "js": ["content.js"],
+    "css": ["style.css"]
+  }],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "GCP Date Picker"
+  }
+}
