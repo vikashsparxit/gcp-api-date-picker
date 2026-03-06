@@ -1,32 +1,337 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=360">
   <style>
-    body { font-family: Arial, sans-serif; width: 350px; padding: 15px; background: #fff; }
-    .container { margin: 10px 0; }
-    label { display: block; font-weight: bold; margin: 10px 0 5px 0; color: #1f2937; }
-    input[type="date"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-    button { width: 100%; padding: 10px; margin-top: 15px; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    button:hover { background: #357ae8; }
-    .info { font-size: 12px; color: #666; margin-top: 10px; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Google Sans', 'Segoe UI', system-ui, sans-serif;
+      width: 360px;
+      margin: 0;
+      padding: 0;
+      background: #f8f9fa;
+      color: #202124;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .popup-inner {
+      padding: 16px;
+      min-height: 320px;
+    }
+
+    .popup-header {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e8eaed;
+    }
+    .popup-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: #202124;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .popup-subtitle {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 2px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      border: 1px solid #e8eaed;
+      box-shadow: 0 1px 2px rgba(60,64,67,.08);
+    }
+    .card-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 8px;
+    }
+
+    .presets-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .preset-btn {
+      font-size: 12px;
+      padding: 6px 10px;
+      background: #f1f3f4;
+      color: #5f6368;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background .15s, color .15s;
+    }
+    .preset-btn:hover {
+      background: #e8eaed;
+      color: #202124;
+    }
+    .preset-btn.active {
+      background: #e8f0fe;
+      color: #1a73e8;
+    }
+    .preset-new-badge {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      color: #0d9488;
+      background: #ccfbf1;
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .preset-btn.active .preset-new-badge {
+      background: #99f6e4;
+      color: #0f766e;
+    }
+
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .field-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 4px;
+    }
+    input[type="date"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #202124;
+      background: #fff;
+    }
+    input[type="date"]:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26,115,232,.2);
+    }
+
+    .btn-apply {
+      width: 100%;
+      padding: 10px 16px;
+      margin-top: 4px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s, box-shadow .15s;
+    }
+    .btn-apply:hover {
+      background: #1765cc;
+      box-shadow: 0 1px 3px rgba(0,0,0,.12);
+    }
+    .btn-apply:active {
+      background: #1557b0;
+    }
+
+    .total-card {
+      background: linear-gradient(135deg, #e8f0fe 0%, #f0f7ff 100%);
+      border-color: #c2dbfe;
+    }
+    .total-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .total-label {
+      font-size: 12px;
+      color: #5f6368;
+    }
+    .btn-refresh {
+      font-size: 11px;
+      padding: 4px 10px;
+      background: #fff;
+      color: #1a73e8;
+      border: 1px solid #1a73e8;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background .15s, color .15s;
+    }
+    .btn-refresh:hover {
+      background: #e8f0fe;
+    }
+    #totalRequestsValue {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a73e8;
+      letter-spacing: -0.02em;
+    }
+    .heartbeat-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #5f6368;
+    }
+    .heartbeat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .heartbeat-dot.active {
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+      animation: heartbeat-pulse 1.2s ease-in-out infinite;
+    }
+    .heartbeat-dot.stopped {
+      background: #ef4444;
+    }
+    @keyframes heartbeat-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+      50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    }
+
+    .footer-hint {
+      font-size: 11px;
+      color: #80868b;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #e8eaed;
+    }
+
+    /* Overlay when not on dashboard */
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #fff;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      border-radius: 0 0 8px 8px;
+    }
+    .overlay.visible { display: flex; }
+    .overlay-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      background: #e8f0fe;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #1a73e8;
+    }
+    .overlay-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+      margin: 0 0 8px 0;
+    }
+    .overlay-text {
+      font-size: 13px;
+      color: #5f6368;
+      line-height: 1.5;
+      margin: 0 0 20px 0;
+      max-width: 260px;
+    }
+    .overlay .btn-open {
+      display: inline-block;
+      padding: 10px 24px;
+      background: #1a73e8;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background .15s;
+    }
+    .overlay .btn-open:hover {
+      background: #1765cc;
+    }
+
+    body { position: relative; }
   </style>
 </head>
 <body>
-  <h2>GCP Date Picker</h2>
-  <div class="container">
-    <label for="startDate">Start Date:</label>
-    <input type="date" id="startDate" />
+  <div class="popup-inner">
+    <header class="popup-header">
+      <h1 class="popup-title">GCP APIs Date Picker</h1>
+      <p class="popup-subtitle">Custom date range and total requests for APIs &amp; Services</p>
+    </header>
+
+    <div id="mainContent">
+      <section class="card">
+        <div class="card-label">Range (same as console)</div>
+        <div class="presets-btns" id="presetBtns">
+          <button type="button" class="preset-btn" data-preset="1h">1h</button>
+          <button type="button" class="preset-btn" data-preset="6h">6h</button>
+          <button type="button" class="preset-btn" data-preset="12h">12h</button>
+          <button type="button" class="preset-btn" data-preset="1d">1d</button>
+          <button type="button" class="preset-btn" data-preset="2d">2d</button>
+          <button type="button" class="preset-btn" data-preset="4d">4d</button>
+          <button type="button" class="preset-btn" data-preset="7d">7d</button>
+          <button type="button" class="preset-btn" data-preset="14d">14d</button>
+          <button type="button" class="preset-btn" data-preset="30d">30d</button>
+          <button type="button" class="preset-btn" data-preset="custom">Custom <span class="preset-new-badge">New</span></button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-label">Date range</div>
+        <div class="date-row">
+          <div class="field-group">
+            <label for="startDate">Start</label>
+            <input type="date" id="startDate" />
+          </div>
+          <div class="field-group">
+            <label for="endDate">End</label>
+            <input type="date" id="endDate" />
+          </div>
+        </div>
+        <button type="button" id="applyBtn" class="btn-apply">Apply Date Range</button>
+      </section>
+
+      <section id="totalRequestsSection" class="card total-card">
+        <div class="total-row">
+          <span class="heartbeat-indicator">
+            <span id="heartbeatDot" class="heartbeat-dot stopped" title="Green = updating; Red = idle"></span>
+            <span id="totalRequestsLabel" class="total-label">Total requests (this period)</span>
+          </span>
+          <button type="button" id="refreshTotalBtn" class="btn-refresh">Refresh</button>
+        </div>
+        <div id="totalRequestsValue">...</div>
+      </section>
+
+      <p class="footer-hint">Open the GCP APIs dashboard to pick dates and see totals.</p>
+    </div>
+
+    <div id="dashboardRequiredOverlay" class="overlay" aria-hidden="true">
+      <div class="overlay-icon" aria-hidden="true">◈</div>
+      <h2 class="overlay-title">Open the dashboard</h2>
+      <p class="overlay-text">Use this extension on the GCP APIs &amp; Services page to set date ranges and view total requests.</p>
+      <a href="https://console.cloud.google.com/apis/dashboard" target="_blank" rel="noopener" id="openDashboardLink" class="btn-open">Open APIs Dashboard</a>
+    </div>
   </div>
-  <div class="container">
-    <label for="endDate">End Date:</label>
-    <input type="date" id="endDate" />
-  </div>
-  <button id="applyBtn">Apply Date Range</button>
-  <div id="totalRequestsSection" class="total-section" style="margin-top: 12px; padding: 10px; background: #f0f7ff; border-radius: 6px; border: 1px solid #4285f4;">
-    <div id="totalRequestsLabel" style="font-size: 12px; color: #666; margin-bottom: 4px;">Total requests (this period)</div>
-    <div id="totalRequestsValue" style="font-size: 18px; font-weight: bold; color: #1a73e8;">—</div>
-  </div>
-  <div class="info">Navigate to GCP APIs Dashboard first, then use this extension.</div>
   <script src="popup.js"></script>
 </body>
 </html>

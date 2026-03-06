@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "GCP Date Picker",
+  "name": "GCP APIs: Custom Date & Request Total",
   "version": "1.0",
-  "description": "Visual date picker for Google Cloud APIs Dashboard",
+  "description": "Choose a custom date range on the GCP APIs & Services dashboard and see the total of all API requests for that period.",
   "icons": {
     "16": "icons/GCP-API-Date-Picker-16.png",
     "48": "icons/GCP-API-Date-Picker-48.png",
     "128": "icons/GCP-API-Date-Picker-128.png"
   },
-  "permissions": ["activeTab", "scripting", "tabs"],
+  "permissions": ["storage", "tabs"],
   "host_permissions": ["https://console.cloud.google.com/*"],
   "content_scripts": [{
     "matches": ["https://console.cloud.google.com/apis/dashboard*"],
@@ -17,7 +17,7 @@
   }],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "GCP Date Picker",
+    "default_title": "Custom date range & total API requests for GCP APIs dashboard",
     "default_icon": {
       "16": "icons/GCP-API-Date-Picker-16.png",
       "48": "icons/GCP-API-Date-Picker-48.png"

@@ -1,16 +1,25 @@
 /**
  * Runs in the page context to find the APIs table "Requests" column and sum values.
- * Used by content script (for badge). Popup uses same logic via executeScript.
+ * Always computes the sum from visible tables/grids (main API list). Uses dashboard
+ * "Total requests: N" only when it is higher than our sum and not from our own badge.
  */
 function getTotalRequestsFromPage() {
-  let total = 0;
+  function isVisible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return false;
+    let n = el;
+    while (n && n !== document.body) {
+      const style = window.getComputedStyle(n);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+      n = n.parentElement;
+    }
+    return true;
+  }
 
-  // Try standard <table>
-  const tables = document.querySelectorAll('table');
-  for (const table of tables) {
-    const headerRow = table.querySelector('thead tr, tr:first-child');
-    if (!headerRow) continue;
-    const headers = headerRow.querySelectorAll('th, td');
+  const candidates = [];
+
+  function sumTable(table, headers, getRows, getCells) {
     let colIndex = -1;
     for (let i = 0; i < headers.length; i++) {
       const t = headers[i].textContent.trim().replace(/\s+/g, ' ');
@@ -19,28 +28,37 @@ function getTotalRequestsFromPage() {
         break;
       }
     }
-    if (colIndex < 0) continue;
-    const rows = table.querySelectorAll('tbody tr');
-    if (rows.length === 0) continue;
+    if (colIndex < 0) return { sum: 0, rowCount: 0 };
+    const rows = getRows(table);
+    let sum = 0;
     for (const row of rows) {
-      const cells = row.querySelectorAll('td');
+      const cells = getCells(row);
       if (cells.length > colIndex) {
         const text = cells[colIndex].textContent.replace(/,/g, '').trim();
         const num = parseInt(text, 10);
-        if (!isNaN(num)) total += num;
+        if (!isNaN(num)) sum += num;
       }
     }
-    if (total > 0) return total;
+    return { sum, rowCount: rows.length };
   }
 
-  // Try role="grid" (e.g. Angular Material / custom components)
+  const tables = document.querySelectorAll('table');
+  for (const table of tables) {
+    if (!isVisible(table)) continue;
+    const headerRow = table.querySelector('thead tr, tr:first-child');
+    if (!headerRow) continue;
+    const headers = headerRow.querySelectorAll('th, td');
+    const { sum: s, rowCount: rc } = sumTable(table, headers, t => t.querySelectorAll('tbody tr'), row => row.querySelectorAll('td'));
+    if (s > 0) candidates.push({ sum: s, rowCount: rc });
+  }
+
   const grids = document.querySelectorAll('[role="grid"]');
   for (const grid of grids) {
+    if (!isVisible(grid)) continue;
     const rows = grid.querySelectorAll('[role="row"]');
+    if (rows.length <= 1) continue;
+    const headerCells = rows[0].querySelectorAll('[role="columnheader"], [role="gridcell"]');
     let colIndex = -1;
-    const firstRow = rows[0];
-    if (!firstRow) continue;
-    const headerCells = firstRow.querySelectorAll('[role="columnheader"], [role="gridcell"]');
     for (let i = 0; i < headerCells.length; i++) {
       if (headerCells[i].textContent.trim().replace(/\s+/g, ' ').includes('Requests')) {
         colIndex = i;
@@ -48,24 +66,24 @@ function getTotalRequestsFromPage() {
       }
     }
     if (colIndex < 0) continue;
+    let gridSum = 0;
     for (let r = 1; r < rows.length; r++) {
       const cells = rows[r].querySelectorAll('[role="gridcell"], td');
       if (cells.length > colIndex) {
         const text = cells[colIndex].textContent.replace(/,/g, '').trim();
         const num = parseInt(text, 10);
-        if (!isNaN(num)) total += num;
+        if (!isNaN(num)) gridSum += num;
       }
     }
-    if (total > 0) return total;
+    if (gridSum > 0) candidates.push({ sum: gridSum, rowCount: rows.length - 1 });
   }
 
-  // Fallback: find any element with text "Requests", then find parent table/grid and column
   const requestHeaders = document.querySelectorAll('th, td, [role="columnheader"]');
   for (const el of requestHeaders) {
     const h = el.textContent.trim().replace(/\s+/g, ' ');
-  if (h !== 'Requests' && !(h.startsWith('Requests') && h.length < 20)) continue;
+    if (h !== 'Requests' && !(h.startsWith('Requests') && h.length < 20)) continue;
     const table = el.closest('table, [role="grid"]');
-    if (!table) continue;
+    if (!table || !isVisible(table)) continue;
     const headerRow = el.closest('tr, [role="row"]');
     if (!headerRow) continue;
     const headers = headerRow.querySelectorAll('th, td, [role="columnheader"]');
@@ -78,17 +96,35 @@ function getTotalRequestsFromPage() {
     }
     if (colIndex < 0) continue;
     const allRows = table.querySelectorAll('tbody tr, [role="row"]');
+    let fallbackSum = 0;
+    let dataRowCount = 0;
     for (const row of allRows) {
       if (row === headerRow) continue;
+      dataRowCount++;
       const cells = row.querySelectorAll('td, [role="gridcell"]');
       if (cells.length > colIndex) {
         const text = cells[colIndex].textContent.replace(/,/g, '').trim();
         const num = parseInt(text, 10);
-        if (!isNaN(num)) total += num;
+        if (!isNaN(num)) fallbackSum += num;
       }
     }
-    if (total > 0) return total;
+    if (fallbackSum > 0) candidates.push({ sum: fallbackSum, rowCount: dataRowCount });
   }
 
-  return total;
+  if (candidates.length === 0) return 0;
+  // Prefer the table with the most data rows (main API list for current range), not the largest sum (which may be stale)
+  const best = candidates.reduce((a, b) => (b.rowCount > a.rowCount ? b : a));
+  let result = best.sum;
+
+  // Optionally use dashboard "Total requests: N" only if higher and not from our own badge (avoid stale/wrong value)
+  const badge = document.getElementById('gcp-date-picker-total-requests');
+  let pageText = document.body.innerText || '';
+  if (badge) pageText = pageText.replace((badge.textContent || '').trim(), '');
+  const dashMatch = pageText.match(/Total\s+requests\s*[:\s]*([\d,]+)/i);
+  if (dashMatch) {
+    const n = parseInt(dashMatch[1].replace(/,/g, ''), 10);
+    if (!isNaN(n) && n > result) result = n;
+  }
+
+  return result;
 }
