@@ -3,15 +3,24 @@
   "name": "GCP Date Picker",
   "version": "1.0",
   "description": "Visual date picker for Google Cloud APIs Dashboard",
-  "permissions": ["activeTab", "scripting"],
+  "icons": {
+    "16": "icons/GCP-API-Date-Picker-16.png",
+    "48": "icons/GCP-API-Date-Picker-48.png",
+    "128": "icons/GCP-API-Date-Picker-128.png"
+  },
+  "permissions": ["activeTab", "scripting", "tabs"],
   "host_permissions": ["https://console.cloud.google.com/*"],
   "content_scripts": [{
     "matches": ["https://console.cloud.google.com/apis/dashboard*"],
-    "js": ["content.js"],
+    "js": ["getTotalRequests.js", "content.js"],
     "css": ["style.css"]
   }],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "GCP Date Picker"
+    "default_title": "GCP Date Picker",
+    "default_icon": {
+      "16": "icons/GCP-API-Date-Picker-16.png",
+      "48": "icons/GCP-API-Date-Picker-48.png"
+    }
   }
 }
